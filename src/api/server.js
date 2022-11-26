@@ -14,7 +14,7 @@ app.use(express.json());
 // CORS Middleware
 app.use(cors ({
     credentials: true,
-    origin: ['http://localhost:3000', 'http://localhost:8080'], // Domain authorized to make requests
+    origin: ['http://localhost:3000', 'http://localhost:3080'], // Domain authorized to make requests
 }));
 
 app.use(cookieParser());
