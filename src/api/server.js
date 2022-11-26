@@ -5,7 +5,7 @@ import { router as usersRouter} from './routes/users.route';
 
 import authJWT from './middlewares/authJWT';
 
-const port = 8080;
+const port = 3080;
 const express = require('express');
 const app = express();
 
