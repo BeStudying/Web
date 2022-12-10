@@ -1,8 +1,9 @@
 import cors from 'cors';
 import express from 'express';
-import { cas, login } from './api.js';
+import { cas, login, infos } from './api.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
+import { connect } from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,17 +22,22 @@ app.use(cors ({
 app.disable('x-powered-by');
 
 app.get('/pronote/cas', (req, res) => {
-    cas(req, res)
+    return cas(req, res);
 });
 
 app.get('/pronote/login', (req, res) => {
-    login(req, res)
+    return login(req, res);
+});
+
+app.get('/pronote/infos', (req, res) => {
+    return infos(req, res);
 });
 
 app.get('/', (req, res) => {
-    res.send("Page en Maintenance")
+    return res.send("Page en Maintenance");
 });
 
 app.listen(port, () => {
     console.log(`API Pronote is Running on : ${port}`);
+    return connect();
 });

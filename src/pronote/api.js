@@ -1,5 +1,8 @@
-import Pronote, { login as connect } from '@dorian-eydoux/pronote-api';
+import Pronote, { fetchInfos, fetchTimetable, login as connect } from '@dorian-eydoux/pronote-api';
 import Express from 'express'
+
+/** @type {PropertiesHash} */
+let sessions = {};
 
 const casList = {
     'ac-besancon': 'cas.eclat-bfc.fr',
@@ -49,9 +52,9 @@ const casList = {
  * @returns {void}
  */
 export function cas(req, res){
-    res.status(200).json(Object.entries(casList).map(cas => {
+    return res.status(200).json(Object.entries(casList).map(cas => {
         return {label: cas[1], value: cas[0]}
-    }))
+    })).end();
 }
 
 /**
@@ -63,12 +66,14 @@ export async function login(req, res){
     const [rne, username, password, cas] = [req.query['rne'], req.query['username'], req.query['password'], req.query['cas']]
     if(!rne || !username || !password || !cas){
         res.statusMessage = "Bad Request";
-        res.status(400).end();
-        return;
+        return res.status(400).end();
     }
-    {Pronote.PronoteSession} const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => res.status(404).json(error));
+    /** @type {Pronote.PronoteSession} */
+    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => res.status(404).json(error));
     session.setKeepAlive(true);
-    res.status(200).json(session.id)
+    sessions[session.id] = session;
+    return res.status(200).json(session.id).end();
+
 }
 
 /**
@@ -77,6 +82,50 @@ export async function login(req, res){
  * @returns {void}
  */
 export async function timetable(req, res){
-    const [session, target, from] = [req.query['session'], req.query['target'], req.query['from']]
-    res.status(200)
+    const [session, target, from] = [req.query['session'], req.query['target'], req.query['from']];
+    if(!session || !target || !from){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessions[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    return res.status(200).json(await fetchTimetable(sessions[session])).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function infos(req, res){
+    const session = req.query['session'];
+    if(!session){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessions[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    return res.status(200).json(await fetchInfos(sessions[session])).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function addFriend(req, res){
+    const [target, from] = [req.query['target'], req.query['from']];
+    if(!target || !from){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessions[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    return res.status(200).end();
 }
