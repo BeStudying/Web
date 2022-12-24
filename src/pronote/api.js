@@ -1,6 +1,6 @@
 import { PronoteSession, fetchInfos, fetchTimetable, casUrls, login as connect } from '@dorian-eydoux/pronote-api';
 import Express from 'express';
-import { query } from './db';
+import { query } from './db.js';
 
 /** @type {number: {PronoteSession}} */
 let sessionsObjects = {};
@@ -9,7 +9,7 @@ let sessionsINE = {};
 
 const sessionToINE = (sessionId) => {
     for(const data of Object.entries(sessionsINE)){
-        if(sessionId !== data[1]) continue;
+        if(Number(sessionId) !== data[1]) continue;
         return data[0];
     }
     return null;
@@ -38,12 +38,15 @@ export async function login(req, res){
         return res.status(400).end();
     }
     /** @type {PronoteSession} */
-    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => res.status(404).json(error));
-    const ine = (await fetchInfos(session))?.numeroINE;
-    session.setKeepAlive(true);
-    sessionsObjects[session.id] = session;
-    sessionsINE[ine] = session.id;
-    return res.status(200).json(session.id).end();
+    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => res.status(404).json(error).end());
+    if(session instanceof PronoteSession){
+        const ine = (await fetchInfos(session))?.numeroINE;
+        session.setKeepAlive(true);
+        sessionsObjects[session.id] = session;
+        sessionsINE[ine] = session.id;
+        return res.status(200).json(session.id).end();
+    }
+    return res.status(404).end();
 }
 
 /**
@@ -100,10 +103,65 @@ export async function addFriend(req, res){
     }
     return res.status(200).end();
 }
- 
+
 /**
  * @param {Express.Request} req 
  * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function cancelFriend(req, res){
+    const [session, target] = [req.query['session'], req.query['target']];
+    if(!session || !target){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessionsObjects[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    return res.status(200).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function acceptFriend(req, res){
+    const [session, target] = [req.query['session'], req.query['target']];
+    if(!session || !target){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessionsObjects[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    return res.status(200).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function rejectFriend(req, res){
+    const [session, target] = [req.query['session'], req.query['target']];
+    if(!session || !target){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessionsObjects[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    return res.status(200).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @param {DB} db
  * @returns {void}
  */
 export async function getFriends(req, res){
@@ -117,9 +175,17 @@ export async function getFriends(req, res){
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
-    const response = query(`SELECT * FROM Relations WHERE '${ine}' IN (first, second);`).catch(error => {
-        res.statusMessage = error;
-        return res.status(500).end();
+    await query(`SELECT * FROM Relations WHERE '${ine}' IN (first, second);`, function(results){
+        const list = [];
+        for (const result of results){
+            if(result.first !== ine){
+                list.push(result.first)
+            }
+            else if(result.second !== ine){
+                list.push(result.second)
+            }
+        }
+        return res.status(200).json(list).end();
     });
-    return res.status(200).json(response).end();
+
 }

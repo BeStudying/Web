@@ -1,9 +1,9 @@
 import cors from 'cors';
 import express from 'express';
-import { cas, login, infos } from './api.js';
+import { cas, login, infos, getFriends, addFriend } from './api.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
-import { connect } from './db.js';
+import {connect} from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,6 +31,14 @@ app.get('/pronote/login', (req, res) => {
 
 app.get('/pronote/infos', (req, res) => {
     return infos(req, res);
+});
+
+app.get('/pronote/friends', (req, res) => {
+    return getFriends(req, res, db);
+});
+
+app.get('/pronote/friends/add', (req, res) => {
+    return addFriend(req, res);
 });
 
 app.get('/', (req, res) => {
