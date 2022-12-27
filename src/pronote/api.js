@@ -1,4 +1,4 @@
-import { PronoteSession, fetchInfos, fetchTimetable, casUrls, login as connect } from '@dorian-eydoux/pronote-api';
+import { PronoteSession, fetchInfos, fetchTimetable, casUrls, login as connect } from '@dorian-eydoux/pronote-api'; 
 import Express from 'express';
 import { query } from './db.js';
 
@@ -38,7 +38,12 @@ export async function login(req, res){
         return res.status(400).end();
     }
     /** @type {PronoteSession} */
-    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => res.status(404).json(error).end());
+    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => { 
+        if(error.code === 3){
+            res.status(403).json(error.message).end();
+        }
+        res.status(100).json(error).end();
+    });
     if(session instanceof PronoteSession){
         const ine = (await fetchInfos(session))?.numeroINE;
         session.setKeepAlive(true);
@@ -46,7 +51,7 @@ export async function login(req, res){
         sessionsINE[ine] = session.id;
         return res.status(200).json(session.id).end();
     }
-    return res.status(404).end();
+    return res.status(504).end();
 }
 
 /**
@@ -64,8 +69,15 @@ export async function timetable(req, res){
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
-    const timetable = await fetchTimetable(sessionsObjects[sessionsINE[target]]);
-    return res.status(200).json(timetable).end();
+    else if (!sessionsINE[target]){
+        res.statusMessage = "Not Found";
+        return res.status(404).end();
+    }
+    const timetable = await sessionsObjects[sessionsINE[target]].timetable(new Date(2022, 10, 28)).catch(err => res.status(500).json(err).end());
+    if (Array.isArray(timetable)) {
+        return res.status(200).json(timetable).end();
+    }
+
 }
 
 /**
@@ -161,7 +173,6 @@ export async function rejectFriend(req, res){
 /**
  * @param {Express.Request} req 
  * @param {Express.Response} res 
- * @param {DB} db
  * @returns {void}
  */
 export async function getFriends(req, res){
@@ -176,7 +187,7 @@ export async function getFriends(req, res){
         return res.status(403).end();
     }
     await query(`SELECT * FROM Relations WHERE '${ine}' IN (first, second);`, function(results){
-        const list = [];
+        const list = [ine];
         for (const result of results){
             if(result.first !== ine){
                 list.push(result.first)
@@ -187,5 +198,71 @@ export async function getFriends(req, res){
         }
         return res.status(200).json(list).end();
     });
-
 }
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function photo(req, res){
+    const [session, target] = [req.query['session'], req.query['target']];
+    if(!session || !target){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessionsObjects[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    else if (!sessionsINE[target]){
+        res.statusMessage = "Not Found";
+        return res.status(403).end();
+    }
+    const userSession = sessionsObjects[session];
+    if(userSession instanceof PronoteSession){
+        return res.status(200).json(userSession.user.avatar ?? "https://i.imgur.com/tbvsqWK.png").end();
+    }
+    return res.status(500).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function nom(req, res){
+    const [session, target] = [req.query['session'], req.query['target']];
+    if(!session || !target){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessionsObjects[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    else if (!sessionsINE[target]){
+        res.statusMessage = "Not Found";
+        return res.status(403).end();
+    }
+    const userSession = sessionsObjects[session];
+    if(userSession instanceof PronoteSession){
+        return res.status(200).json(userSession.user.name).end();
+    }
+    return res.status(500).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function ping(req, res){
+    const session = req.query['session'];
+    if(!session){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    return res.status(200).json(+!!sessionsObjects[session]).end();
+}
+

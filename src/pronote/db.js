@@ -1,11 +1,11 @@
 import mysql from 'mysql';
 
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
+    host: "37.187.37.122",
+    user: "admin",
+    password: "NyrokGames75",
     database: "bestudying",
-    port: 3307,
+    port: 3306,
 });
 
 export async function connect(){
@@ -18,8 +18,8 @@ export async function connect(){
             'CREATE TABLE IF NOT EXISTS Relations(first VARCHAR(11) NOT NULL UNIQUE,second VARCHAR(11) NOT NULL UNIQUE,timetable BIT DEFAULT 0,marks BIT DEFAULT 0,homeworks BIT DEFAULT 0,date DATETIME,PRIMARY KEY (first, second));',
             'CREATE TABLE IF NOT EXISTS Pendings(first VARCHAR(11) NOT NULL UNIQUE,second VARCHAR(11) NOT NULL UNIQUE,date DATETIME,PRIMARY KEY (first, second));',
         );
+        console.log("DB Connected");
     });
-    console.log("DB Connected");
 } 
 
 /**
