@@ -1,4 +1,4 @@
-import { PronoteSession, fetchInfos, fetchTimetable, casUrls, login as connect } from '@dorian-eydoux/pronote-api'; 
+import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks } from '@dorian-eydoux/pronote-api'; 
 import Express from 'express';
 import { query } from './db.js';
 
@@ -77,7 +77,32 @@ export async function timetable(req, res){
     if (Array.isArray(timetable)) {
         return res.status(200).json(timetable).end();
     }
+}
 
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function marks(req, res){
+    const [session, target] = [req.query['session'], req.query['target']];
+    if(!session || !target){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+    else if (!sessionsObjects[session]){
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    else if (!sessionsINE[target]){
+        res.statusMessage = "Not Found";
+        return res.status(404).end();
+    }
+    const sessionObject = sessionsObjects[sessionsINE[target]];
+    const trimestre = sessionObject.params.periods.filter(period => period.from.getTime() <= Date.now() && period.to.getTime() >= Date.now() && [0, 1, 2].includes(period.notationPeriod))[0];
+    const marks = (await fetchMarks(sessionObject)).marks.filter(mark => mark.period.id === trimestre.id);
+    res.status(200).json(marks).end();
 }
 
 /**

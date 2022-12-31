@@ -1,6 +1,6 @@
 import cors from 'cors';
 import express from 'express';
-import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping } from './api.js';
+import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping, marks } from './api.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import {connect} from './db.js';
@@ -59,6 +59,11 @@ app.get('/pronote/nom', (req, res) => {
 app.get('/pronote/timetable', (req, res) => {
     console.log('/pronote/timetable')
     return timetable(req, res);
+});
+
+app.get('/pronote/marks', (req, res) => {
+    console.log('/pronote/marks')
+    return marks(req, res);
 });
 
 app.get('/pronote/ping', (req, res) => {
