@@ -1,6 +1,8 @@
-import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks } from '@dorian-eydoux/pronote-api'; 
+import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks, getCAS } from '@dorian-eydoux/pronote-api';
 import Express from 'express';
 import { query } from './db.js';
+import {PythonShell} from 'python-shell';
+
 
 /** @type {number: {PronoteSession}} */
 let sessionsObjects = {};
@@ -32,16 +34,19 @@ export function cas(req, res){
  * @returns {void}
  */
 export async function login(req, res){
-    const [rne, username, password, cas] = [req.query['rne'], req.query['username'], req.query['password'], req.query['cas']]
-    if(!rne || !username || !password || !cas){
+    const {rne, username, password} = req.query;
+    if(!rne || !username || !password){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
     }
+    const cas = await getCAS(`https://${rne}.index-education.net/pronote/`);
+    if(!cas){
+        return res.status(403).end();
+    }
     /** @type {PronoteSession} */
     const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => { 
-        if(error.code === 3){
-            res.status(403).json(error.message).end();
-        }
+        if(error.code === 3) return res.status(403).json(error.message).end();
+        else if(error.code === 2) return res.status(500).json(error.message).end();
         res.status(100).json(error).end();
     });
     if(session instanceof PronoteSession){
@@ -49,7 +54,63 @@ export async function login(req, res){
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
-        return res.status(200).json(session.id).end();
+        return res.status(200).json({id: session.id}).end();
+    }
+    return res.status(504).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function loginQR(req, res){
+    const {url, login, jeton, pin} = req.query;
+    if(!url || !login || !jeton || !pin){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+
+    /** @type {PronoteSession} */
+    const session = await connect(url, {url, login, jeton}, pin, 'qrcode').catch(error => { 
+        if(error.code === 3) return res.status(403).json(error.message).end();
+        else if(error.code === 2) return res.status(500).json(error.message).end();
+        res.status(100).json(error).end();
+    });
+    if(session instanceof PronoteSession){
+        const ine = (await fetchInfos(session))?.numeroINE;
+        session.setKeepAlive(true);
+        sessionsObjects[session.id] = session;
+        sessionsINE[ine] = session.id;
+        return res.status(200).json({id: session.id, uuid: session.uuidAppliMobile, username: session.username, jeton: session.jetonConnexionAppliMobile}).end();
+    }
+    return res.status(504).end();
+}
+
+/**
+ * @param {Express.Request} req 
+ * @param {Express.Response} res 
+ * @returns {void}
+ */
+export async function loginMobile(req, res){
+    const {url, uuid, username, jeton} = req.query;
+    if(!url || !uuid || !username || !jeton){
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    }
+
+    /** @type {PronoteSession} */
+    const session = await connect(url, {uuid, username}, jeton, 'mobile').catch(error => { 
+        if(error.code === 3) return res.status(403).json(error.message).end();
+        else if(error.code === 2) return res.status(500).json(error.message).end();
+        res.status(100).json(error).end();
+    });
+    if(session instanceof PronoteSession){
+        const ine = (await fetchInfos(session))?.numeroINE;
+        session.setKeepAlive(true);
+        sessionsObjects[session.id] = session;
+        sessionsINE[ine] = session.id;
+        return res.status(200).json({id: session.id, jeton: session.jetonConnexionAppliMobile}).end();
     }
     return res.status(504).end();
 }
@@ -60,7 +121,7 @@ export async function login(req, res){
  * @returns {void}
  */
 export async function timetable(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -86,7 +147,7 @@ export async function timetable(req, res){
  * @returns {void}
  */
 export async function marks(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -111,7 +172,7 @@ export async function marks(req, res){
  * @returns {void}
  */
 export async function infos(req, res){
-    const session = req.query['session'];
+    const {session} = req.query;
     if(!session){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -129,7 +190,7 @@ export async function infos(req, res){
  * @returns {void}
  */
 export async function addFriend(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -147,7 +208,7 @@ export async function addFriend(req, res){
  * @returns {void}
  */
 export async function cancelFriend(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -165,7 +226,7 @@ export async function cancelFriend(req, res){
  * @returns {void}
  */
 export async function acceptFriend(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -183,7 +244,7 @@ export async function acceptFriend(req, res){
  * @returns {void}
  */
 export async function rejectFriend(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -201,7 +262,7 @@ export async function rejectFriend(req, res){
  * @returns {void}
  */
 export async function getFriends(req, res){
-    const session = req.query['session'];
+    const {session} = req.query;
     const ine = sessionToINE(session);
     if(!session){
         res.statusMessage = "Bad Request";
@@ -231,7 +292,7 @@ export async function getFriends(req, res){
  * @returns {void}
  */
 export async function photo(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -257,7 +318,7 @@ export async function photo(req, res){
  * @returns {void}
  */
 export async function nom(req, res){
-    const [session, target] = [req.query['session'], req.query['target']];
+    const {session, target} = req.query;
     if(!session || !target){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
@@ -283,7 +344,7 @@ export async function nom(req, res){
  * @returns {void}
  */
 export async function ping(req, res){
-    const session = req.query['session'];
+    const {session} = req.query;
     if(!session){
         res.statusMessage = "Bad Request";
         return res.status(400).end();

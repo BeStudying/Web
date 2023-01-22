@@ -1,0 +1,21 @@
+{
+  "name": "web-server",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "proxy": "http://localhost:80",
+  "dependencies": {
+    "@dorian-eydoux/pronote-api": "^2.3.4",
+    "cookie-parser": "^1.4.6",
+    "express": "^4.18.2",
+    "mysql": "^2.18.1",
+    "node-fetch": "^2.6.7",
+    "nodemon": "^2.0.20",
+    "patch-package": "^6.5.1"
+  },
+  "scripts": {
+    "start": "node server",
+    "dev": "nodemon server",
+    "postinstall": "patch-package"
+  }
+}

@@ -10,7 +10,6 @@ export default class App extends Component {
     }
 
     render(){
-      alert('Application pas encore publiée.')
       return (
         <div className="App">
           <header className="App-header">

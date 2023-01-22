@@ -1,23 +1,12 @@
-import cors from 'cors';
 import express from 'express';
-import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping, marks } from './api.js';
-import path from 'path';
-import {fileURLToPath} from 'url';
+import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping, marks, loginQR } from './api.js';
+import { login as qrlogin} from '@dorian-eydoux/pronote-api';
 import {connect} from './db.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const port = 80;
+const port = 100;
 const app = express();
 
 app.use(express.json());
-
-// CORS Middleware
-app.use(cors ({
-    credentials: true,
-    origin: ['https://localhost:80', 'https://localhost:8080', 'https://localhost:443'],
-}));
 
 app.disable('x-powered-by');
 
@@ -29,6 +18,11 @@ app.get('/pronote/cas', (req, res) => {
 app.get('/pronote/login', (req, res) => {
     console.log('/pronote/login')
     return login(req, res);
+});
+
+app.get('/pronote/loginQr', (req, res) => {
+    console.log('/pronote/loginQr')
+    return loginQR(req, res);
 });
 
 app.get('/pronote/infos', (req, res) => {
@@ -72,10 +66,10 @@ app.get('/pronote/ping', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    return res.send("Page en Maintenance");
+    return res.send("Page en Maintenance.");
 });
 
 app.listen(port, () => {
     console.log(`API Pronote is Running on : ${port}`);
-    return connect();
+    //return connect();
 });
