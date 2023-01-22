@@ -133,7 +133,9 @@ export async function timetable(req, res){
         res.statusMessage = "Not Found";
         return res.status(404).end();
     }
-    const timetable = await sessionsObjects[sessionsINE[target]].timetable(new Date(2022, 10, 28)).catch(err => res.status(500).json(err).end());
+    const date = new Date();
+    date.setHours(0);
+    const timetable = await sessionsObjects[sessionsINE[target]].timetable(date).catch(err => res.status(500).json(err).end());
     if (Array.isArray(timetable)) {
         return res.status(200).json(timetable).end();
     }
