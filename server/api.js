@@ -134,6 +134,7 @@ export async function timetable(req, res){
         return res.status(404).end();
     }
     const date = new Date();
+    date.setTime(date.getTime() + (date.getTimezoneOffset() * 60000) + 3600000);
     date.setHours(0);
     const timetable = await sessionsObjects[sessionsINE[target]].timetable(date).catch(err => res.status(500).json(err).end());
     if (Array.isArray(timetable)) {
