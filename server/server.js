@@ -1,9 +1,8 @@
 import express from 'express';
-import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping, marks, loginQR } from './api.js';
-import { login as qrlogin} from '@dorian-eydoux/pronote-api';
+import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping, marks, loginQR, loginMobile } from './api.js';
 import {connect} from './db.js';
 
-const port = 100;
+const port = 80;
 const app = express();
 
 app.use(express.json());
@@ -23,6 +22,11 @@ app.get('/pronote/login', (req, res) => {
 app.get('/pronote/loginQr', (req, res) => {
     console.log('/pronote/loginQr')
     return loginQR(req, res);
+});
+
+app.get('/pronote/loginMobile', (req, res) => {
+    console.log('/pronote/loginMobile')
+    return loginMobile(req, res);
 });
 
 app.get('/pronote/infos', (req, res) => {
@@ -71,5 +75,5 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
     console.log(`API Pronote is Running on : ${port}`);
-    //return connect();
+    return connect();
 });

@@ -1,7 +1,6 @@
 import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks, getCAS } from '@dorian-eydoux/pronote-api';
 import Express from 'express';
 import { query } from './db.js';
-import {PythonShell} from 'python-shell';
 
 
 /** @type {number: {PronoteSession}} */
@@ -54,7 +53,7 @@ export async function login(req, res){
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
-        return res.status(200).json({id: session.id}).end();
+        return res.status(200).json(session.id).end();
     }
     return res.status(504).end();
 }
@@ -82,7 +81,7 @@ export async function loginQR(req, res){
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
-        return res.status(200).json({id: session.id, uuid: session.uuidAppliMobile, username: session.username, jeton: session.jetonConnexionAppliMobile}).end();
+        return res.status(200).json({id: session.id, uuid: session.uuidAppliMobile, identifiant: session.identifiant, jeton: session.jetonConnexionAppliMobile}).end();
     }
     return res.status(504).end();
 }
@@ -93,14 +92,14 @@ export async function loginQR(req, res){
  * @returns {void}
  */
 export async function loginMobile(req, res){
-    const {url, uuid, username, jeton} = req.query;
-    if(!url || !uuid || !username || !jeton){
+    const {url, uuid, identifiant, jeton} = req.query;
+    if(!url || !uuid || !identifiant || !jeton){
         res.statusMessage = "Bad Request";
         return res.status(400).end();
     }
 
     /** @type {PronoteSession} */
-    const session = await connect(url, {uuid, username}, jeton, 'mobile').catch(error => { 
+    const session = await connect(url, {uuid, identifiant}, jeton, 'mobile').catch(error => { 
         if(error.code === 3) return res.status(403).json(error.message).end();
         else if(error.code === 2) return res.status(500).json(error.message).end();
         res.status(100).json(error).end();
