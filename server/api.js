@@ -1,7 +1,7 @@
 // noinspection JSUnresolvedFunction,JSUnresolvedVariable,JSUndefinedPropertyAssignment,DuplicatedCode
 
-import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks, getCAS } from '@dorian-eydoux/pronote-api';
-import { query } from './db.js';
+import {casUrls, fetchInfos, fetchMarks, getCAS, login as connect, PronoteSession} from '@dorian-eydoux/pronote-api';
+import {query} from './db.js';
 import {saveInfos} from "./utils.js";
 
 
@@ -11,46 +11,46 @@ let sessionsObjects = {};
 let sessionsINE = {};
 
 const sessionToINE = (sessionId) => {
-    for(const data of Object.entries(sessionsINE)){
-        if(Number(sessionId) !== data[1]) continue;
+    for (const data of Object.entries(sessionsINE)) {
+        if (Number(sessionId) !== data[1]) continue;
         return data[0];
     }
     return null;
 }
 
 /**
- * @param {Express.Request} req 
+ * @param {Express.Request} req
  * @param {Express.Response} res
  * @returns {void}
  */
-export function cas(req, res){
+export function cas(req, res) {
     res.status(200).json(Object.entries(casUrls).map(cas => {
         return {label: cas[1], value: cas[0]}
     })).end();
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function login(req, res){
+export async function login(req, res) {
     const {rne, username, password} = req.query;
-    if(!rne || !username || !password){
+    if (!rne || !username || !password) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
     }
     const cas = await getCAS(`https://${rne}.index-education.net/pronote/`);
-    if(!cas){
+    if (!cas) {
         return res.status(403).end();
     }
     /** @type {PronoteSession} */
-    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => { 
-        if(error.code === 3) return res.status(403).json(error.message).end();
-        else if(error.code === 2) return res.status(500).json(error.message).end();
+    const session = await connect(`https://${rne}.index-education.net/pronote/`, username, password, cas).catch(error => {
+        if (error.code === 3) return res.status(403).json(error.message).end();
+        else if (error.code === 2) return res.status(500).json(error.message).end();
         res.status(100).json(error).end();
     });
-    if(session instanceof PronoteSession){
+    if (session instanceof PronoteSession) {
         const ine = (await fetchInfos(session))?.numeroINE;
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
@@ -64,54 +64,59 @@ export async function login(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function loginQR(req, res){
+export async function loginQR(req, res) {
     const {url, login, jeton, pin} = req.query;
-    if(!url || !login || !jeton || !pin){
+    if (!url || !login || !jeton || !pin) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
     }
 
     /** @type {PronoteSession} */
-    const session = await connect(url, {url, login, jeton}, pin, 'qrcode').catch(error => { 
-        if(error.code === 3) return res.status(403).json(error.message).end();
-        else if(error.code === 2) return res.status(500).json(error.message).end();
+    const session = await connect(url, {url, login, jeton}, pin, 'qrcode').catch(error => {
+        if (error.code === 3) return res.status(403).json(error.message).end();
+        else if (error.code === 2) return res.status(500).json(error.message).end();
         res.status(100).json(error).end();
     });
-    if(session instanceof PronoteSession){
+    if (session instanceof PronoteSession) {
         const ine = (await fetchInfos(session))?.numeroINE;
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
         session.ine = ine;
         saveInfos(session);
-        return res.status(200).json({id: session.id, uuid: session.uuidAppliMobile, identifiant: session.identifiant, jeton: session.jetonConnexionAppliMobile}).end();
+        return res.status(200).json({
+            id: session.id,
+            uuid: session.uuidAppliMobile,
+            identifiant: session.identifiant,
+            jeton: session.jetonConnexionAppliMobile
+        }).end();
     }
     return res.status(504).end();
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function loginMobile(req, res){
+export async function loginMobile(req, res) {
     const {url, uuid, identifiant, jeton} = req.query;
-    if(!url || !uuid || !identifiant || !jeton){
+    if (!url || !uuid || !identifiant || !jeton) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
     }
 
     /** @type {PronoteSession} */
-    const session = await connect(url, {uuid, identifiant}, jeton, 'mobile').catch(error => { 
-        if(error.code === 3) return res.status(403).json(error.message).end();
-        else if(error.code === 2) return res.status(500).json(error.message).end();
+    const session = await connect(url, {uuid, identifiant}, jeton, 'mobile').catch(error => {
+        if (error.code === 3) return res.status(403).json(error.message).end();
+        else if (error.code === 2) return res.status(500).json(error.message).end();
         res.status(100).json(error).end();
     });
-    if(session instanceof PronoteSession){
+    if (session instanceof PronoteSession) {
         const ine = (await fetchInfos(session))?.numeroINE;
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
@@ -124,21 +129,19 @@ export async function loginMobile(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function timetable(req, res){
+export async function timetable(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
-    }
-    else if (!sessionsINE[target]){
+    } else if (!sessionsINE[target]) {
         res.statusMessage = "Not Found";
         return res.status(404).end();
     }
@@ -153,21 +156,19 @@ export async function timetable(req, res){
 
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function marks(req, res){
+export async function marks(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
-    }
-    else if (!sessionsINE[target]){
+    } else if (!sessionsINE[target]) {
         res.statusMessage = "Not Found";
         return res.status(404).end();
     }
@@ -178,17 +179,16 @@ export async function marks(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function infos(req, res){
+export async function infos(req, res) {
     const {session} = req.query;
-    if(!session){
+    if (!session) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
@@ -196,17 +196,16 @@ export async function infos(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function addFriend(req, res){
+export async function addFriend(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
@@ -214,17 +213,16 @@ export async function addFriend(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function cancelFriend(req, res){
+export async function cancelFriend(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
@@ -232,17 +230,16 @@ export async function cancelFriend(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function acceptFriend(req, res){
+export async function acceptFriend(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
@@ -250,17 +247,16 @@ export async function acceptFriend(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function rejectFriend(req, res){
+export async function rejectFriend(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
@@ -268,18 +264,17 @@ export async function rejectFriend(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function getFriends(req, res){
+export async function getFriends(req, res) {
     const {session} = req.query;
     const ine = sessionToINE(session);
-    if(!session){
+    if (!session) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session] || !ine){
+    } else if (!sessionsObjects[session] || !ine) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
@@ -297,68 +292,88 @@ export async function getFriends(req, res){
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function photo(req, res){
+export async function photo(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
-    }
-    else if (!sessionsINE[target]){
+    } else if (!sessionsINE[target]) {
         res.statusMessage = "Not Found";
         return res.status(403).end();
     }
     const userSession = sessionsObjects[session];
-    if(userSession instanceof PronoteSession){
+    if (userSession instanceof PronoteSession) {
         return res.status(200).json(userSession.user.avatar ?? "https://i.imgur.com/tbvsqWK.png").end();
     }
     return res.status(500).end();
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function nom(req, res){
+export async function nom(req, res) {
     const {session, target} = req.query;
-    if(!session || !target){
+    if (!session || !target) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
-    }
-    else if (!sessionsObjects[session]){
+    } else if (!sessionsObjects[session]) {
         res.statusMessage = "Forbidden";
         return res.status(403).end();
-    }
-    else if (!sessionsINE[target]){
+    } else if (!sessionsINE[target]) {
         res.statusMessage = "Not Found";
         return res.status(403).end();
     }
     const userSession = sessionsObjects[session];
-    if(userSession instanceof PronoteSession){
+    if (userSession instanceof PronoteSession) {
         return res.status(200).json(userSession.user.name).end();
     }
     return res.status(500).end();
 }
 
 /**
- * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Request} req
+ * @param {Express.Response} res
  * @returns {void}
  */
-export async function ping(req, res){
+export async function ping(req, res) {
     const {session} = req.query;
-    if(!session){
+    if (!session) {
         res.statusMessage = "Bad Request";
         return res.status(400).end();
     }
     return res.status(200).json(+!!sessionsObjects[session]).end();
+}
+
+/**
+ * @param {Express.Request} req
+ * @param {Express.Response} res
+ * @returns {void}
+ */
+export async function search(req, res) {
+    const {session, query} = req.query;
+    if (!session || !query) {
+        res.statusMessage = "Bad Request";
+        return res.status(400).end();
+    } else if (!sessionsObjects[session]) {
+        res.statusMessage = "Forbidden";
+        return res.status(403).end();
+    }
+    query(`SELECT ine, nom_prenom, classe, etablissement FROM Users WHERE ine != '${ine}' AND nom_prenom LIKE '%${query}%';`, function (results) {
+        const list = {};
+        for (const result of results) {
+            const {ine, nom_prenom, classe, etablissement} = result;
+            list[ine] = {nom_prenom, classe, etablissement};
+        }
+        return res.status(200).json(list).end();
+    });
 }
 
