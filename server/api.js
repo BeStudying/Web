@@ -1,8 +1,11 @@
+// noinspection JSUnresolvedFunction,JSUnresolvedVariable,JSUndefinedPropertyAssignment,DuplicatedCode
+
 import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks, getCAS } from '@dorian-eydoux/pronote-api';
 import { query } from './db.js';
+import {saveInfos} from "./utils.js";
 
 
-/** @type {number: {PronoteSession}} */
+/** @type {number: PronoteSession} */
 let sessionsObjects = {};
 /** @type {string: number} */
 let sessionsINE = {};
@@ -17,11 +20,11 @@ const sessionToINE = (sessionId) => {
 
 /**
  * @param {Express.Request} req 
- * @param {Express.Response} res 
+ * @param {Express.Response} res
  * @returns {void}
  */
 export function cas(req, res){
-    return res.status(200).json(Object.entries(casUrls).map(cas => {
+    res.status(200).json(Object.entries(casUrls).map(cas => {
         return {label: cas[1], value: cas[0]}
     })).end();
 }
@@ -52,6 +55,9 @@ export async function login(req, res){
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
+        session.ine = ine;
+        saveInfos(session);
+        query(`REPLACE Credentials VALUES('${ine}', '${username}', '${password}', '${cas}', '${rne}');`);
         return res.status(200).json(session.id).end();
     }
     return res.status(504).end();
@@ -80,6 +86,8 @@ export async function loginQR(req, res){
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
+        session.ine = ine;
+        saveInfos(session);
         return res.status(200).json({id: session.id, uuid: session.uuidAppliMobile, identifiant: session.identifiant, jeton: session.jetonConnexionAppliMobile}).end();
     }
     return res.status(504).end();
@@ -108,6 +116,8 @@ export async function loginMobile(req, res){
         session.setKeepAlive(true);
         sessionsObjects[session.id] = session;
         sessionsINE[ine] = session.id;
+        session.ine = ine;
+        saveInfos(session);
         return res.status(200).json({id: session.id, jeton: session.jetonConnexionAppliMobile}).end();
     }
     return res.status(504).end();
@@ -273,13 +283,12 @@ export async function getFriends(req, res){
         res.statusMessage = "Forbidden";
         return res.status(403).end();
     }
-    await query(`SELECT * FROM Relations WHERE '${ine}' IN (first, second);`, function(results){
+    query(`SELECT * FROM Relations WHERE '${ine}' IN (first, second);`, function (results) {
         const list = [ine];
-        for (const result of results){
-            if(result.first !== ine){
+        for (const result of results) {
+            if (result.first !== ine) {
                 list.push(result.first)
-            }
-            else if(result.second !== ine){
+            } else if (result.second !== ine) {
                 list.push(result.second)
             }
         }
