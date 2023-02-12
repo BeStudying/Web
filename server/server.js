@@ -1,5 +1,18 @@
 import express from 'express';
-import { cas, login, infos, getFriends, addFriend, photo, nom, timetable, ping, marks, loginQR, loginMobile } from './api.js';
+import {
+    addFriend,
+    cas,
+    getFriends,
+    infos,
+    login,
+    loginMobile,
+    loginQR,
+    marks,
+    nom,
+    photo,
+    ping,
+    timetable
+} from './api.js';
 import {connect} from './db.js';
 
 const port = 80;

@@ -1,5 +1,4 @@
 import { PronoteSession, fetchInfos, casUrls, login as connect, fetchMarks, getCAS } from '@dorian-eydoux/pronote-api';
-import Express from 'express';
 import { query } from './db.js';
 
 
